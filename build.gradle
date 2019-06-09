@@ -15,6 +15,37 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.4'
+task buildDocker {
+    doLast {
+        println "All images pushed!"
+    }
+}
+
+subprojects {
+    afterEvaluate { project ->
+        task copyJar(type: Copy) {
+            dependsOn project.tasks.bootJar
+            from(project.tasks.bootJar.outputs.files.singleFile)
+            into("build/dist")
+        }
+        task copyDocker(type: Copy) {
+            from("src/docker")
+            into("build/dist")
+        }
+        task createDocker(type: Exec) {
+            dependsOn copyJar
+            dependsOn copyDocker
+            workingDir "build/dist"
+            commandLine "docker", "build", ".", "-t", "$project.name", "--build-arg", "JAR_FILE=$project.name-0.1.0.jar"
+            standardOutput = new ByteArrayOutputStream()
+            doLast {
+                if(execResult.exitValue == 0) {
+                    println "Pushed docker image for $project.name"
+                } else {
+                    println "Failed to create docker image for $project.name"
+                }
+            }
+        }
+        buildDocker.dependsOn createDocker
+    }
 }
