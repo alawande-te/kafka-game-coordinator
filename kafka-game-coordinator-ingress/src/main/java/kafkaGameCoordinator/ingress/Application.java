@@ -1,4 +1,4 @@
-package ingress;
+package kafkaGameCoordinator.ingress;
 
 import java.util.Arrays;
 
