@@ -1,3 +1,7 @@
+plugins {
+    id 'org.unbroken-dome.test-sets' version '2.1.1'
+}
+
 group 'anlawande'
 version '1.0-SNAPSHOT'
 
@@ -22,6 +26,8 @@ task buildDocker {
 }
 
 subprojects {
+    apply plugin: 'org.unbroken-dome.test-sets'
+
     afterEvaluate { project ->
         task copyJar(type: Copy) {
             dependsOn project.tasks.bootJar
@@ -47,5 +53,9 @@ subprojects {
             }
         }
         buildDocker.dependsOn createDocker
+
+        testSets {
+            integrationTest 
+        }
     }
 }
