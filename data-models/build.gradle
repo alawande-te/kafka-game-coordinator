@@ -1,0 +1,15 @@
+apply plugin: 'java'
+apply plugin: 'groovy'
+
+group 'anlawande'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.apache.kafka', name: 'kafka_2.12', version: '2.3.0'
+}

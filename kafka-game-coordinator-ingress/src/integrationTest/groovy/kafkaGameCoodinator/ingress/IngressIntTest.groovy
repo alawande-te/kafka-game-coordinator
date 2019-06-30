@@ -1,8 +1,11 @@
 package kafkaGameCoodinator.ingress
 
+import kafkaGameCoodinator.utils.AuthThrottlerTestConfiguration
+import kafkaGameCoodinator.utils.CustomKafkaTestUtils
 import kafkaGameCoordinator.ingress.Application
 import kafkaGameCoordinator.ingress.controller.IngressController
 import kafkaGameCoordinator.ingress.throttler.AuthThrottler
+import kafkaGameCoordinator.models.IngressMessage
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.hamcrest.MatcherAssert
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,12 +30,12 @@ class IngressIntTest extends Specification {
     @Autowired
     private IngressController ingressController
 
-    private static KafkaTemplate<String, String> kafkaTemplate
+    private static KafkaTemplate<String, IngressMessage> kafkaTemplate
     boolean shouldAllow = true
 
     public EmbeddedKafkaRule embeddedKafka
 
-    private BlockingQueue<ConsumerRecord<String, String>> records
+    private BlockingQueue<ConsumerRecord<String, IngressMessage>> records
 
     def cleanSpec() {
         embeddedKafka.after()
@@ -55,32 +58,26 @@ class IngressIntTest extends Specification {
 
     def 'should receive kafka message when http message is received by ingress and is not throttled'() {
         when:
-        String greeting = "hello"
         ingressController.ingressEntrypoint("auth")
 
         then:
         // check that the message was received
-        ConsumerRecord<String, String> received =
+        ConsumerRecord<String, IngressMessage> received =
                 records.poll(10, TimeUnit.SECONDS)
-        // Hamcrest Matchers to check the value
-        MatcherAssert.assertThat(received, KafkaMatchers.hasValue(greeting))
-        // AssertJ Condition to check the key
-        MatcherAssert.assertThat(received, KafkaMatchers.hasKey(greeting))
+        received.value().authToken == "auth"
+        MatcherAssert.assertThat(received, KafkaMatchers.hasKey("auth"))
     }
 
     def 'should not recive kafka message when http message is received by ingress and is throttled'() {
         when:
-        String greeting = "hello"
         ingressController.ingressEntrypoint("auth")
 
         then:
         // check that the message was received
-        ConsumerRecord<String, String> received =
+        ConsumerRecord<String, IngressMessage> received =
                 records.poll(10, TimeUnit.SECONDS)
-        // Hamcrest Matchers to check the value
-        MatcherAssert.assertThat(received, KafkaMatchers.hasValue(greeting))
-        // AssertJ Condition to check the key
-        MatcherAssert.assertThat(received, KafkaMatchers.hasKey(greeting))
+        received.value().authToken == "auth"
+        MatcherAssert.assertThat(received, KafkaMatchers.hasKey("auth"))
 
         when:
         shouldAllow = false

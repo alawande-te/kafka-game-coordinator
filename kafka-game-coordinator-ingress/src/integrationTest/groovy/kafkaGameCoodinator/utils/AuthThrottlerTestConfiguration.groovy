@@ -1,4 +1,4 @@
-package kafkaGameCoodinator.ingress
+package kafkaGameCoodinator.utils
 
 import kafkaGameCoordinator.ingress.throttler.AuthThrottler
 import kafkaGameCoordinator.ingress.throttler.AuthThrottlerFactory

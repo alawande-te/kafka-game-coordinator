@@ -25,7 +25,13 @@ task buildDocker {
     }
 }
 
+def nonSpringProjects = ['data-models'] as HashSet
+
 subprojects {
+    if (nonSpringProjects.contains(it.name)) {
+        return
+    }
+
     apply plugin: 'org.unbroken-dome.test-sets'
 
     afterEvaluate { project ->

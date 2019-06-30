@@ -1,5 +1,8 @@
-package kafkaGameCoodinator.ingress
+package kafkaGameCoodinator.utils
 
+import kafkaGameCoordinator.models.IngressMessage
+import kafkaGameCoordinator.serialization.IngressMessageDeserializer
+import kafkaGameCoordinator.serialization.IngressMessageSerializer
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -33,16 +36,16 @@ class CustomKafkaTestUtils {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
                 StringSerializer.class)
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                StringSerializer.class)
+                IngressMessageSerializer.class)
 
         return props
     }
 
-    static ProducerFactory<String, String> producerFactory(String brokerAddress) {
+    static ProducerFactory<String, IngressMessage> producerFactory(String brokerAddress) {
         return new DefaultKafkaProducerFactory<>(producerConfigs(brokerAddress))
     }
 
-    static KafkaTemplate<String, String> kafkaTemplate(String brokerAddress) {
+    static KafkaTemplate<String, IngressMessage> kafkaTemplate(String brokerAddress) {
         return new KafkaTemplate<>(producerFactory(brokerAddress))
     }
 
@@ -52,6 +55,7 @@ class CustomKafkaTestUtils {
                 KafkaTestUtils.consumerProps("int-test-consumer", "false",
                         embeddedKafka.getEmbeddedKafka())
         consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
+        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, IngressMessageDeserializer.class)
 
         // create a Kafka consumer factory
         DefaultKafkaConsumerFactory<String, String> consumerFactory =

@@ -33,6 +33,7 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-web")
     compile group: 'redis.clients', name: 'jedis', version: '3.0.1'
     compile group: 'org.springframework.kafka', name: 'spring-kafka', version: '2.2.2.RELEASE'
+    compile project(':data-models')
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.spockframework', name: 'spock-core', version: '1.3-groovy-2.4'
