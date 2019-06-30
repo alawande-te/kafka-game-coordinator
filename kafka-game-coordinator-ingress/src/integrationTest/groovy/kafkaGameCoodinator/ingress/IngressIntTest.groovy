@@ -1,24 +1,16 @@
 package kafkaGameCoodinator.ingress
 
 import kafkaGameCoordinator.ingress.Application
-import kafkaGameCoordinator.ingress.HelloController
-import org.apache.kafka.clients.consumer.ConsumerConfig
+import kafkaGameCoordinator.ingress.controller.IngressController
+import kafkaGameCoordinator.ingress.throttler.AuthThrottler
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.common.serialization.StringDeserializer
 import org.hamcrest.MatcherAssert
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory
+import org.springframework.context.annotation.Import
 import org.springframework.kafka.core.KafkaTemplate
-import org.springframework.kafka.listener.ContainerProperties
-import org.springframework.kafka.listener.KafkaMessageListenerContainer
-import org.springframework.kafka.listener.MessageListener
 import org.springframework.kafka.test.hamcrest.KafkaMatchers
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule
-import org.springframework.kafka.test.utils.ContainerTestUtils
-import org.springframework.kafka.test.utils.KafkaTestUtils
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.util.ReflectionTestUtils
 import spock.lang.Specification
@@ -27,77 +19,44 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 
-@SpringBootTest(classes = Application.class)
+@SpringBootTest(classes = Application.class, properties = "spring.main.allow-bean-definition-overriding=true")
 @DirtiesContext
+@Import(AuthThrottlerTestConfiguration.class)
 class IngressIntTest extends Specification {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(IngressIntTest.class)
-
     @Autowired
-    private HelloController helloController
+    private IngressController ingressController
 
     private static KafkaTemplate<String, String> kafkaTemplate
+    boolean shouldAllow = true
 
-    public static EmbeddedKafkaRule embeddedKafka =
-            new EmbeddedKafkaRule(1, true, 'ingress')
+    public EmbeddedKafkaRule embeddedKafka
 
     private BlockingQueue<ConsumerRecord<String, String>> records
 
-    def setupSpec() {
-        embeddedKafka.before()
-        kafkaTemplate = CustomKafkaTestUtils.kafkaTemplate(embeddedKafka.getEmbeddedKafka().brokerAddresses[0].toString())
-    }
-
-    def cleanupSpec() {
+    def cleanSpec() {
         embeddedKafka.after()
     }
 
     def setup() {
-        ReflectionTestUtils.setField(helloController, "kafkaTemplate", kafkaTemplate)
-
-        // set up the Kafka consumer properties
-        Map<String, Object> consumerProperties =
-                KafkaTestUtils.consumerProps("int-test-consumer", "false",
-                                             embeddedKafka.getEmbeddedKafka())
-        consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
-
-        // create a Kafka consumer factory
-        DefaultKafkaConsumerFactory<String, String> consumerFactory =
-                new DefaultKafkaConsumerFactory<String, String>(consumerProperties)
-
-        // set the topic that needs to be consumed
-        ContainerProperties containerProperties =
-                new ContainerProperties("ingress")
-
-        KafkaMessageListenerContainer<String, String> container = new KafkaMessageListenerContainer<>(consumerFactory, containerProperties)
+        embeddedKafka = new EmbeddedKafkaRule(1, true, 'ingress')
+        embeddedKafka.before()
+        kafkaTemplate = CustomKafkaTestUtils.kafkaTemplate(embeddedKafka.getEmbeddedKafka().brokerAddresses[0].toString())
+        ReflectionTestUtils.setField(ingressController, "kafkaTemplate", kafkaTemplate)
+        def stub = Stub(AuthThrottler)
+        stub.processOne() >> { return shouldAllow }
+        AuthThrottlerTestConfiguration.setMockAuthThrottler(stub)
 
         // create a thread safe queue to store the received message
         records = new LinkedBlockingQueue<>()
 
-        // setup a Kafka message listener
-        container
-                .setupMessageListener(new MessageListener<String, String>() {
-                    @Override
-                    void onMessage(ConsumerRecord<String, String> record) {
-                        LOGGER.debug("test-listener received message='{}'",
-                                record.toString())
-                        records.add(record)
-                    }
-                })
-
-        // start the container and underlying message listener
-        container.start()
-
-        // wait until the container has the required number of assigned partitions
-        ContainerTestUtils.waitForAssignment(container,
-                embeddedKafka.getEmbeddedKafka().getPartitionsPerTopic())
+        CustomKafkaTestUtils.setupKafkaConsumer(embeddedKafka, records)
     }
 
     def 'should receive kafka message when http message is received by ingress and is not throttled'() {
         when:
         String greeting = "hello"
-        helloController.index()
+        ingressController.ingressEntrypoint("auth")
 
         then:
         // check that the message was received
@@ -107,5 +66,27 @@ class IngressIntTest extends Specification {
         MatcherAssert.assertThat(received, KafkaMatchers.hasValue(greeting))
         // AssertJ Condition to check the key
         MatcherAssert.assertThat(received, KafkaMatchers.hasKey(greeting))
+    }
+
+    def 'should not recive kafka message when http message is received by ingress and is throttled'() {
+        when:
+        String greeting = "hello"
+        ingressController.ingressEntrypoint("auth")
+
+        then:
+        // check that the message was received
+        ConsumerRecord<String, String> received =
+                records.poll(10, TimeUnit.SECONDS)
+        // Hamcrest Matchers to check the value
+        MatcherAssert.assertThat(received, KafkaMatchers.hasValue(greeting))
+        // AssertJ Condition to check the key
+        MatcherAssert.assertThat(received, KafkaMatchers.hasKey(greeting))
+
+        when:
+        shouldAllow = false
+        ingressController.ingressEntrypoint("auth")
+
+        then:
+        records.isEmpty()
     }
 }

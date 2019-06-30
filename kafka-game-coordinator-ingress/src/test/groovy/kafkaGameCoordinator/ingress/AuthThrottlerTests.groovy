@@ -6,8 +6,6 @@ import redis.clients.jedis.JedisPool
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import javax.servlet.http.HttpServletRequest
-
 @Unroll
 class AuthThrottlerTests extends Specification {
 
@@ -16,20 +14,17 @@ class AuthThrottlerTests extends Specification {
         JedisPool jedisPool = Mock(JedisPool)
         Jedis jedis = Mock(Jedis)
         jedisPool.getResource() >> jedis
-        AuthThrottler authThrottler = new AuthThrottler("one", jedisPool)
-
-        HttpServletRequest request = Mock(HttpServletRequest)
-        request.getParameter("authToken") >> "one"
+        AuthThrottler authThrottler = new AuthThrottler("one", jedisPool, 10)
 
         when:
         jedis.incr(_ as String) >> throttlerResponse
-        boolean wasProcessed = authThrottler.processOne(request)
+        boolean wasProcessed = authThrottler.processOne()
 
         then:
         wasProcessed
 
         where:
-        throttlerResponse << [1, 2, 5, AuthThrottler.MAX_MESSAGES_PER_AUTH]
+        throttlerResponse << [1, 2, 5, 10]
     }
 
     def 'should throttle auth requests if reached limit for minute'() {
@@ -37,20 +32,16 @@ class AuthThrottlerTests extends Specification {
         JedisPool jedisPool = Mock(JedisPool)
         Jedis jedis = Mock(Jedis)
         jedisPool.getResource() >> jedis
-        AuthThrottler authThrottler = new AuthThrottler("one", jedisPool)
-
-        HttpServletRequest request = Mock(HttpServletRequest)
-        request.getParameter("authToken") >> "one"
+        AuthThrottler authThrottler = new AuthThrottler("one", jedisPool, 10)
 
         when:
         jedis.incr(_ as String) >> throttlerResponse
-        boolean wasProcessed = authThrottler.processOne(request)
+        boolean wasProcessed = authThrottler.processOne()
 
         then:
         !wasProcessed
 
         where:
-        throttlerResponse << [AuthThrottler.MAX_MESSAGES_PER_AUTH+1,
-                              AuthThrottler.MAX_MESSAGES_PER_AUTH*2]
+        throttlerResponse << [11, 20]
     }
 }
