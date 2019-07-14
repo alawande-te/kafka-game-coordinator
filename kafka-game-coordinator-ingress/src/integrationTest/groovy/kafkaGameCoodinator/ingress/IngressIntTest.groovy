@@ -37,7 +37,7 @@ class IngressIntTest extends Specification {
 
     private BlockingQueue<ConsumerRecord<String, IngressMessage>> records
 
-    def cleanSpec() {
+    def cleanup() {
         embeddedKafka.after()
     }
 
