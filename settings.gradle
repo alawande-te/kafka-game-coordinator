@@ -1,3 +1,4 @@
 rootProject.name = 'kafka-game-coordinator'
-include 'kafka-game-coordinator-ingress'
+include 'ingress'
 include 'data-models'
+include 'enricher'
