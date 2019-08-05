@@ -2,7 +2,7 @@ package kafkaGameCoodinator.ingress
 
 import kafkaGameCoodinator.utils.AuthThrottlerTestConfiguration
 import kafkaGameCoodinator.utils.CustomKafkaTestUtils
-import kafkaGameCoordinator.ingress.Application
+import kafkaGameCoordinator.ingress.IngressApplication
 import kafkaGameCoordinator.ingress.controller.IngressController
 import kafkaGameCoordinator.ingress.throttler.AuthThrottler
 import kafkaGameCoordinator.models.IngressMessage
@@ -22,7 +22,7 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 
-@SpringBootTest(classes = Application.class, properties = "spring.main.allow-bean-definition-overriding=true")
+@SpringBootTest(classes = IngressApplication.class, properties = "spring.main.allow-bean-definition-overriding=true")
 @DirtiesContext
 @Import(AuthThrottlerTestConfiguration.class)
 class IngressIntTest extends Specification {
@@ -68,7 +68,7 @@ class IngressIntTest extends Specification {
         MatcherAssert.assertThat(received, KafkaMatchers.hasKey("auth"))
     }
 
-    def 'should not recive kafka message when http message is received by ingress and is throttled'() {
+    def 'should not receive kafka message when http message is received by ingress and is throttled'() {
         when:
         ingressController.ingressEntrypoint("auth")
 

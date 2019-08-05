@@ -31,8 +31,9 @@ targetCompatibility = 1.8
 
 dependencies {
     compile("org.springframework.boot:spring-boot-starter-web")
-    compile group: 'redis.clients', name: 'jedis', version: '3.0.1'
     compile group: 'org.springframework.kafka', name: 'spring-kafka', version: '2.2.2.RELEASE'
+    compile "org.springframework.boot:spring-boot-starter-jdbc"
+    compile "mysql:mysql-connector-java"
     compile project(':data-models')
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
@@ -41,3 +42,4 @@ dependencies {
     testCompile("org.springframework.boot:spring-boot-starter-test")
     testCompile("org.springframework.kafka:spring-kafka-test")
 }
+    

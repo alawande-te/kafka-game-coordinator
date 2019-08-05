@@ -9,19 +9,20 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import redis.clients.jedis.JedisPool;
 
 @RestController
 public class IngressController {
 
-    @Autowired
-    private JedisPool jedisPool;
+    private final KafkaTemplate<String, IngressMessage> kafkaTemplate;
+    private final AuthThrottlerFactory authThrottlerFactory;
 
     @Autowired
-    private KafkaTemplate<String, IngressMessage> kafkaTemplate;
-
-    @Autowired
-    private AuthThrottlerFactory authThrottlerFactory;
+    public IngressController(KafkaTemplate<String, IngressMessage> kafkaTemplate,
+                             AuthThrottlerFactory authThrottlerFactory)
+    {
+        this.kafkaTemplate = kafkaTemplate;
+        this.authThrottlerFactory = authThrottlerFactory;
+    }
 
     @GetMapping("/ingress")
     public String ingressEntrypoint(@RequestParam String authToken) {
