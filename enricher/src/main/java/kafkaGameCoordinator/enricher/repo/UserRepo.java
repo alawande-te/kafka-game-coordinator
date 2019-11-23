@@ -8,14 +8,12 @@ import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Repository
 public class UserRepo {
@@ -43,6 +41,27 @@ public class UserRepo {
         MapSqlParameterSource params = new MapSqlParameterSource("userIds", userIds);
 
         return jdbcTemplate.query(sql, params, resultSetExtractor);
+    }
+
+    public void saveAll(Collection<User> users) {
+
+        SqlParameterSource[] params = users.stream()
+                                            .map(user -> new MapSqlParameterSource()
+                                                    .addValue("userId", user.getUserId())
+                                                    .addValue("rank", user.getRank())
+                                                    .addValue("updatedTs", user.getUpdatedTs())
+                                                    .addValue("status", user.getStatus().toString()))
+                                            .toArray(SqlParameterSource[]::new);
+
+        String sql = "UPDATE user u " +
+                     "JOIN user_status us ON u.user_id = us.user_id " +
+                     "SET " +
+                     "u.rank = :rank, " +
+                     "us.status = :status, " +
+                     "us.updated_ts = :updatedTs " +
+                     "WHERE u.user_id = :userId ";
+
+        jdbcTemplate.batchUpdate(sql, params);
     }
 
     private static class UserIdExtractor implements ResultSetExtractor<Map<Long, User>> {
