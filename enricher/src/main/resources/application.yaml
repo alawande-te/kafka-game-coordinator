@@ -9,6 +9,9 @@ kafka:
     groupId: EnricherApp
     key-serializer: org.apache.kafka.common.serialization.StringSerializer
     value-serializer: kafkaGameCoordinator.serialization.IngressMessageSerializer
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: kafkaGameCoordinator.serialization.EnrichedMessageSerializer
 
 logging:
   level:

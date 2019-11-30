@@ -1,5 +1,6 @@
 package kafkaGameCoordinator.enricher.models;
 
+import kafkaGameCoordinator.models.UserStatus;
 import lombok.Data;
 
 @Data

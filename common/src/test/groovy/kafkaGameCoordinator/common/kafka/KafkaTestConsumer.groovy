@@ -1,13 +1,8 @@
-package kafkaGameCoodinator.utils
+package kafkaGameCoordinator.common.kafka
 
-import kafkaGameCoordinator.models.IngressMessage
-import kafkaGameCoordinator.serialization.IngressMessageDeserializer
-import kafkaGameCoordinator.serialization.IngressMessageSerializer
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
@@ -23,55 +18,67 @@ import org.springframework.kafka.test.utils.KafkaTestUtils
 
 import java.util.concurrent.BlockingQueue
 
-class CustomKafkaTestUtils {
+public class KafkaTestConsumer<K, V> {
 
     private static final Logger LOGGER =
-            LoggerFactory.getLogger(CustomKafkaTestUtils.class)
+            LoggerFactory.getLogger(KafkaTestConsumer.class)
 
-    static
-    Map<String, Object> producerConfigs(String brokerAddress) {
+    private Class keySerializerClass
+    private Class keyDeserializerClass
+    private Class valueSerializerClass
+    private Class valueDeserializerClass
+
+    public KafkaTestConsumer(Class keySerializerClass, Class keyDeserializerClass,
+                             Class valueSerializerClass, Class valueDeserializerClass) {
+        this.keySerializerClass = keySerializerClass
+        this.keyDeserializerClass = keyDeserializerClass
+        this.valueSerializerClass = valueSerializerClass
+        this.valueDeserializerClass = valueDeserializerClass
+    }
+
+    public Map<String, Object> producerConfigs(String brokerAddress) {
         Map<String, Object> props = new HashMap<>()
         // list of host:port pairs used for establishing the initial connections to the Kakfa cluster
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokerAddress)
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                StringSerializer.class)
+                  this.keySerializerClass)
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                IngressMessageSerializer.class)
+                  this.valueSerializerClass)
 
         return props
     }
 
-    static ProducerFactory<String, IngressMessage> producerFactory(String brokerAddress) {
+    public ProducerFactory<K, V> producerFactory(String brokerAddress) {
         return new DefaultKafkaProducerFactory<>(producerConfigs(brokerAddress))
     }
 
-    static KafkaTemplate<String, IngressMessage> kafkaTemplate(String brokerAddress) {
+    public KafkaTemplate<K, V> kafkaTemplate(String brokerAddress) {
         return new KafkaTemplate<>(producerFactory(brokerAddress))
     }
 
-    static void setupKafkaConsumer(EmbeddedKafkaRule embeddedKafka, BlockingQueue<ConsumerRecord<String, String>> records) {
+    public void setupKafkaConsumer(EmbeddedKafkaRule embeddedKafka, String topic, BlockingQueue<ConsumerRecord<K, V>> records) {
         // set up the Kafka consumer properties
         Map<String, Object> consumerProperties =
                 KafkaTestUtils.consumerProps("int-test-consumer", "false",
                         embeddedKafka.getEmbeddedKafka())
-        consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
-        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, IngressMessageDeserializer.class)
+        consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.keyDeserializerClass)
+        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.valueDeserializerClass)
 
         // create a Kafka consumer factory
-        DefaultKafkaConsumerFactory<String, String> consumerFactory =
-                new DefaultKafkaConsumerFactory<String, String>(consumerProperties)
+        DefaultKafkaConsumerFactory<K, V> consumerFactory =
+                new DefaultKafkaConsumerFactory<K, V>(consumerProperties)
 
         // set the topic that needs to be consumed
         ContainerProperties containerProperties =
-                new ContainerProperties("ingress")
+                new ContainerProperties(topic)
 
-        KafkaMessageListenerContainer<String, String> container = new KafkaMessageListenerContainer<>(consumerFactory, containerProperties)
+        KafkaMessageListenerContainer<K, V> container = new KafkaMessageListenerContainer<>(consumerFactory, containerProperties)
 
         // setup a Kafka message listener
         container
-                .setupMessageListener(new MessageListener<String, String>() {
+                .setupMessageListener(new MessageListener<K, V>() {
                     @Override
-                    void onMessage(ConsumerRecord<String, String> record) {
+                    void onMessage(ConsumerRecord<K, V> record) {
                         LOGGER.debug("test-listener received message='{}'",
                                 record.toString())
                         records.add(record)

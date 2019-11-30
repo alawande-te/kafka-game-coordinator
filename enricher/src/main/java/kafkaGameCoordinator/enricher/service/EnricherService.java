@@ -1,10 +1,11 @@
 package kafkaGameCoordinator.enricher.service;
 
 import kafkaGameCoordinator.enricher.models.User;
-import kafkaGameCoordinator.enricher.models.UserStatus;
+import kafkaGameCoordinator.models.UserStatus;
 import kafkaGameCoordinator.enricher.repo.UserRepo;
 import kafkaGameCoordinator.models.IngressMessage;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -14,10 +15,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class EnricherService {
 
-    @Autowired
-    private UserRepo userRepo;
+    private final UserRepo userRepo;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     public void enricherUsers(Collection<IngressMessage> ingressMessages) {
         Set<String> authTokens = ingressMessages.stream().map(IngressMessage::getAuthToken).collect(Collectors.toSet());

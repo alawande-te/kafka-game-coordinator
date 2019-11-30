@@ -1,15 +1,28 @@
 package kafkaGameCoordinator.enricher
 
 import com.google.common.collect.ImmutableSet
-import kafkaGameCoordinator.enricher.models.UserStatus
+import kafkaGameCoordinator.common.kafka.KafkaTestConsumer
+import kafkaGameCoordinator.models.EnrichedMessage
+import kafkaGameCoordinator.models.UserStatus
 import kafkaGameCoordinator.enricher.repo.UserRepo
 import kafkaGameCoordinator.enricher.service.EnricherService
 import kafkaGameCoordinator.models.IngressMessage
+import kafkaGameCoordinator.serialization.IngressMessageDeserializer
+import kafkaGameCoordinator.serialization.IngressMessageSerializer
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.kafka.test.rule.EmbeddedKafkaRule
 import org.springframework.test.annotation.DirtiesContext
+import org.springframework.test.util.ReflectionTestUtils
 import spock.lang.Specification
+
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.LinkedBlockingQueue
 
 @SpringBootTest(classes = EnricherApplication.class, properties = "spring.main.allow-bean-definition-overriding=true")
 @DirtiesContext
@@ -25,9 +38,26 @@ class EnricherServiceTests extends Specification {
     @Autowired
     EnricherService enricherService
 
+    EmbeddedKafkaRule embeddedKafka
+    KafkaTestConsumer<String, EnrichedMessage> kafkaTestConsumer
+    private KafkaTemplate<String, EnrichedMessage> kafkaTemplate
+    private BlockingQueue<ConsumerRecord<String, EnrichedMessage>> records
+
     def setup() {
         jdbcTemplate.execute("DELETE FROM user_status")
         jdbcTemplate.execute("DELETE FROM user")
+
+        kafkaTestConsumer = new KafkaTestConsumer<>(StringSerializer.class, StringDeserializer.class,
+                                                    IngressMessageSerializer.class, IngressMessageDeserializer.class)
+        embeddedKafka = new EmbeddedKafkaRule(1, true, 'ingress')
+        embeddedKafka.before()
+        kafkaTemplate = kafkaTestConsumer.kafkaTemplate(embeddedKafka.getEmbeddedKafka().brokerAddresses[0].toString())
+        ReflectionTestUtils.setField(enricherService, "kafkaTemplate", kafkaTemplate)
+
+        // create a thread safe queue to store the received message
+        records = new LinkedBlockingQueue<>()
+
+        kafkaTestConsumer.setupKafkaConsumer(embeddedKafka, "enriched", records)
     }
 
     def 'should update user status and timestamps when enriched'() {

@@ -37,7 +37,11 @@ task buildDocker {
     }
 }
 
-def nonSpringProjects = ['data-models'] as HashSet
+configure(subprojects) {
+    apply plugin: 'io.freefair.lombok'
+}
+
+def nonSpringProjects = ['data-models', 'common'] as HashSet
 
 subprojects {
     if (nonSpringProjects.contains(it.name)) {
@@ -46,7 +50,6 @@ subprojects {
 
     apply plugin: 'org.unbroken-dome.test-sets'
     apply plugin: 'docker-compose'
-    apply plugin: 'io.freefair.lombok'
 
     dependencies {
         compile group: 'com.google.guava', name: 'guava', version: '11.0.2'

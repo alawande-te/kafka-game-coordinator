@@ -1,4 +1,4 @@
-package kafkaGameCoordinator.enricher.models;
+package kafkaGameCoordinator.models;
 
 public enum UserStatus {
     IDLE,

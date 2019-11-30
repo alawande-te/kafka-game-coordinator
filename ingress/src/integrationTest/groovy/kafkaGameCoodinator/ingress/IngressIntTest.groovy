@@ -1,12 +1,16 @@
 package kafkaGameCoodinator.ingress
 
 import kafkaGameCoodinator.utils.AuthThrottlerTestConfiguration
-import kafkaGameCoodinator.utils.CustomKafkaTestUtils
+import kafkaGameCoordinator.common.kafka.KafkaTestConsumer
 import kafkaGameCoordinator.ingress.IngressApplication
 import kafkaGameCoordinator.ingress.controller.IngressController
 import kafkaGameCoordinator.ingress.throttler.AuthThrottler
 import kafkaGameCoordinator.models.IngressMessage
+import kafkaGameCoordinator.serialization.IngressMessageDeserializer
+import kafkaGameCoordinator.serialization.IngressMessageSerializer
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.StringSerializer
 import org.hamcrest.MatcherAssert
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -34,7 +38,7 @@ class IngressIntTest extends Specification {
     boolean shouldAllow = true
 
     public EmbeddedKafkaRule embeddedKafka
-
+    private KafkaTestConsumer<String, IngressMessage> kafkaTestConsumer
     private BlockingQueue<ConsumerRecord<String, IngressMessage>> records
 
     def cleanup() {
@@ -42,9 +46,11 @@ class IngressIntTest extends Specification {
     }
 
     def setup() {
+        kafkaTestConsumer = new KafkaTestConsumer<>(StringSerializer.class, StringDeserializer.class,
+                                                    IngressMessageSerializer.class, IngressMessageDeserializer.class)
         embeddedKafka = new EmbeddedKafkaRule(1, true, 'ingress')
         embeddedKafka.before()
-        kafkaTemplate = CustomKafkaTestUtils.kafkaTemplate(embeddedKafka.getEmbeddedKafka().brokerAddresses[0].toString())
+        kafkaTemplate = kafkaTestConsumer.kafkaTemplate(embeddedKafka.getEmbeddedKafka().brokerAddresses[0].toString())
         ReflectionTestUtils.setField(ingressController, "kafkaTemplate", kafkaTemplate)
         def stub = Stub(AuthThrottler)
         stub.processOne() >> { return shouldAllow }
@@ -53,7 +59,7 @@ class IngressIntTest extends Specification {
         // create a thread safe queue to store the received message
         records = new LinkedBlockingQueue<>()
 
-        CustomKafkaTestUtils.setupKafkaConsumer(embeddedKafka, records)
+        kafkaTestConsumer.setupKafkaConsumer(embeddedKafka, "ingress", records)
     }
 
     def 'should receive kafka message when http message is received by ingress and is not throttled'() {

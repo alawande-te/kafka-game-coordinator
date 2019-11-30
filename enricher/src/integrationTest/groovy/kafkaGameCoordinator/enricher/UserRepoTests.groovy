@@ -2,7 +2,7 @@ package kafkaGameCoordinator.enricher
 
 import com.google.common.collect.ImmutableSet
 import kafkaGameCoordinator.enricher.models.User
-import kafkaGameCoordinator.enricher.models.UserStatus
+import kafkaGameCoordinator.models.UserStatus
 import kafkaGameCoordinator.enricher.repo.UserRepo
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
