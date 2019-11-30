@@ -28,6 +28,21 @@ public class UserRepo {
         this.jdbcTemplate = jdbtcTemplate;
     }
 
+    public Map<Long, User> getUsersByAuthTokensIn(Set<String> authTokens) {
+        if (authTokens.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        String sql = "SELECT * " +
+                     "FROM user " +
+                     "LEFT JOIN user_status USING(user_id) " +
+                     "WHERE auth_token IN (:authTokens) ";
+
+        MapSqlParameterSource params = new MapSqlParameterSource("authTokens", authTokens);
+
+        return jdbcTemplate.query(sql, params, resultSetExtractor);
+    }
+
     public Map<Long, User> getUsersByIdIn(Set<Long> userIds) {
         if (userIds.isEmpty()) {
             return Collections.emptyMap();
