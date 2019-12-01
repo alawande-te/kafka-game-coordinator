@@ -1,6 +1,7 @@
 package kafkaGameCoordinator.enricher.service;
 
 import kafkaGameCoordinator.enricher.models.User;
+import kafkaGameCoordinator.models.EnrichedMessage;
 import kafkaGameCoordinator.models.UserStatus;
 import kafkaGameCoordinator.enricher.repo.UserRepo;
 import kafkaGameCoordinator.models.IngressMessage;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 public class EnricherService {
 
     private final UserRepo userRepo;
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<Long, EnrichedMessage> kafkaTemplate;
 
     public void enricherUsers(Collection<IngressMessage> ingressMessages) {
         Set<String> authTokens = ingressMessages.stream().map(IngressMessage::getAuthToken).collect(Collectors.toSet());
@@ -37,7 +38,12 @@ public class EnricherService {
         userRepo.saveAll(findingUsers.values());
 
         for (User user: findingUsers.values()) {
-            System.out.println(user);
+            EnrichedMessage enrichedMessage = new EnrichedMessage();
+            enrichedMessage.setUserId(user.getUserId());
+            enrichedMessage.setRank(user.getRank());
+            enrichedMessage.setFindingSince(user.getUpdatedTs());
+            enrichedMessage.setStatus(user.getStatus());
+            kafkaTemplate.send("enriched", user.getUserId(), enrichedMessage);
         }
     }
 

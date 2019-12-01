@@ -3,15 +3,15 @@ spring:
   dataSource.driver-class-name: com.mysql.cj.jdbc.Driver
   main:
     web-application-type: NONE
+  kafka:
+    consumer:
+      groupId: EnricherApp
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: kafkaGameCoordinator.serialization.IngressMessageSerializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: kafkaGameCoordinator.serialization.EnrichedMessageSerializer
 
-kafka:
-  consumer:
-    groupId: EnricherApp
-    key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    value-serializer: kafkaGameCoordinator.serialization.IngressMessageSerializer
-  producer:
-    key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    value-serializer: kafkaGameCoordinator.serialization.EnrichedMessageSerializer
 
 logging:
   level:
