@@ -1,0 +1,46 @@
+group 'anlawande'
+version '1.0-SNAPSHOT'
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.1.4.RELEASE")
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+bootJar {
+    baseName = 'kafka-game-coordinator-match-maker'
+    version =  '0.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile group: 'org.springframework.kafka', name: 'spring-kafka', version: '2.2.2.RELEASE'
+    compile "org.springframework.boot:spring-boot-starter-jdbc"
+    compile "mysql:mysql-connector-java"
+    compile project(':data-models')
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'org.spockframework', name: 'spock-core', version: '1.3-groovy-2.4'
+    testCompile group: 'org.spockframework', name: 'spock-spring', version: '1.3-groovy-2.4'
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile("org.springframework.kafka:spring-kafka-test")
+    testCompile project(':common').sourceSets.test.output
+}
+    

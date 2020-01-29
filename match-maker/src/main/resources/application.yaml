@@ -1,0 +1,17 @@
+spring:
+  profiles.active: local
+  dataSource.driver-class-name: com.mysql.cj.jdbc.Driver
+  main:
+    web-application-type: NONE
+  kafka:
+    consumer:
+      groupId: MatchMakerApp
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: kafkaGameCoordinator.serialization.EnrichedMessageSerializer
+
+
+logging:
+  level:
+    root: INFO
+    org.apache.kafka: WARN
+    org.apache.zookeeper: WARN
