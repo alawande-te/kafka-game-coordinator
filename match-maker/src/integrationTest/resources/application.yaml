@@ -1,6 +1,12 @@
+kafka.consumer:
+    brokers: ${spring.embedded.kafka.brokers}
+    groupId: testGroup
+    topic: testTopic
+
 spring:
     datasource:
         url: jdbc:mysql://localhost:3306/kafka_game_coordinator
         username: app
         password: app
         driver-class-name: com.mysql.cj.jdbc.Driver
+match-maker.strategy: OrderedMatchMakerStrategy

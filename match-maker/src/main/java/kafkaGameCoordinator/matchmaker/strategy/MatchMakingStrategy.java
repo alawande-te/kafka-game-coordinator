@@ -1,8 +1,8 @@
 package kafkaGameCoordinator.matchmaker.strategy;
 
-import org.springframework.kafka.listener.AbstractMessageListenerContainer;
+import kafkaGameCoordinator.matchmaker.kafka.KafkaContainerFacade;
 
 public interface MatchMakingStrategy {
 
-    AbstractMessageListenerContainer makeContainer();
+    KafkaContainerFacade getStrategyFacade();
 }
